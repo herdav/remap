@@ -32,7 +32,7 @@ Waypoints[] waypoint;
 
 void setup() {
   size(1780, 810);
-  cour = createFont("cour.ttf", 14);
+  cour = createFont("\\data\\cour.ttf", 14);
   smooth();
   frameRate(30);
   background(240);
@@ -42,7 +42,7 @@ void setup() {
   for (int i = 0; i < path.length; i++) {
     path[i] = new PVector(0, 0);
   }
-  mapOrg = loadImage("map_2400x4000_sw.jpg");
+  mapOrg = loadImage("\\img\\map_2400x4000_sw.jpg");
   mapOrg.resize(mapWidth, height);
   mapOrg.loadPixels();
   image(mapOrg, 0, 0);
@@ -50,6 +50,7 @@ void setup() {
   waypointCoordinate();
   waypoints();
 }
+
 void draw() {
   raster();
   createMapImage();
@@ -67,9 +68,10 @@ void draw() {
   }
   showImage();
 }
+
 void keyPressed () {
   if (key == 's') {
-    saveFrame ("capture_####.jpg");
+    saveFrame ("\\capture\\capture_####.jpg");
   }
 }
 
@@ -156,8 +158,9 @@ void createNewMap() { // creates a new map according to "map..()".
 
 void waypointCoordinate() { // generates the coordinates for "waypoints()".
   waypointCoordinate = new PVector[waypoint.length];
+  int r = 100;
   for (int i = 0; i < waypoint.length; i++) {
-    waypointCoordinate[i] = new PVector(random(100, mapWidth-100), random(100, height-100));
+    waypointCoordinate[i] = new PVector(random(r, mapWidth-r), random(r, height-r));
   }
 }
 
@@ -212,28 +215,8 @@ class Waypoints {
 
 void photos() { // loads the photos of the waypoints.
   photo = new PImage[nPhotos];
-  photo[0] = loadImage("felderkundung_0.jpg");
-  photo[1] = loadImage("felderkundung_1.jpg");
-  photo[2] = loadImage("felderkundung_2.jpg");
-  photo[3] = loadImage("felderkundung_3.jpg");
-  photo[4] = loadImage("felderkundung_4.jpg");
-  photo[5] = loadImage("felderkundung_5.jpg");
-  photo[6] = loadImage("felderkundung_6.jpg");
-  photo[7] = loadImage("felderkundung_7.jpg");
-  photo[8] = loadImage("felderkundung_8.jpg");
-  photo[9] = loadImage("felderkundung_9.jpg");
-  photo[10] = loadImage("felderkundung_10.jpg");
-  photo[11] = loadImage("felderkundung_11.jpg");
-  photo[12] = loadImage("felderkundung_12.jpg");
-  photo[13] = loadImage("felderkundung_13.jpg");
-  photo[14] = loadImage("felderkundung_14.jpg");
-  photo[15] = loadImage("felderkundung_15.jpg");
-  photo[16] = loadImage("felderkundung_16.jpg");
-  photo[17] = loadImage("felderkundung_17.jpg");
-  photo[18] = loadImage("felderkundung_18.jpg");
-  photo[19] = loadImage("felderkundung_19.jpg");
-  photo[20] = loadImage("felderkundung_20.jpg");
   for (int i = 0; i < nPhotos; i++) {
+    photo[i] = loadImage("\\img\\felderkundung_" + i + ".jpg");
     photo[i].resize(height/6*3, height/3);
   }
 }
@@ -259,6 +242,21 @@ void showImage() { // shows photos according to "pathfinder()".
     if (deltaPos[i] < 200) {
       image(photo[i], width - photo[i].width, height/3*2);
     }
+  }
+}
+
+void pathfinder() { // is looking for "waypoints[]" on the map.
+  newPathfinder.move();
+  newPathfinder.force();
+  newPathfinder.display();
+  count++;
+  if (count < path.length) {
+    path[count] = new PVector(pathfinder.x, pathfinder.y);
+  }
+  for (int i = 0; i < path.length; i++) {
+    fill(255, 255, 150, 100);
+    noStroke();
+    ellipse(path[i].x, path[i].y, 4, 4);
   }
 }
 
