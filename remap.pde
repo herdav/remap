@@ -2,49 +2,47 @@
 // HSLU D&K - IDA Enzyklopaedie Emmenbruecke
 // -----------------------------------------
 
-int cycles = 10000;
-int numberWaypoints = 40;
+int cycles = 4000;
+int numberWaypoints = 21;
 int radiusWaypoint = 10;
 int nPhotos = 21;
 int count = 0;
 int lifecycle = 0;
-int systemSize = 1;
+int systemSize = 3;
+int rss;
 float maxResource = 100;
 float resourceCecycle = 0.2;
-
-color colorStroke = color(255, 255, 150, 100);
-color colorWaypoint = color(255, 255, 150, 100);
-color colorPath = color(255, 150);
-
+color colorStroke = color(255, 0, 0, 200);
+color colorWaypoint = color(0, 100);
+color colorPath = color(255, 50);
 PImage mapOrg, mapImageBfull;
 PImage[] mapImageA, mapImageB, photo;
-
 int countHitTot;
 int[] countHits = new int[numberWaypoints];
 int mapWidth, mapPartWidth;
 int rasterMapBountX, rasterMapBountY, rasterMapBountXY;
 float[] waypointsGrowth = new float[numberWaypoints];
 float[] resource = new float[numberWaypoints];
-float[] delatResource = new float[numberWaypoints];
+float[] deltaResource = new float[numberWaypoints];
 float waypointsGrowthTotal;
-
 PVector pathfinder;
 PVector[] gridMaster, waypointCoordinate;
 PVector[] path = new PVector[cycles];
-
 boolean mouseClicked;
 boolean[] countHit = new boolean[numberWaypoints];
-
 PFont cour;
-
+XML rssZS, rssLU;
+String[] search;
+String[] ZS, titleZS, descriptionZS;
+String[] LU, titleLU, descriptionLU;
 Pathfinder newPathfinder;
 Waypoints[] waypoint;
 
 void setup() {
-  size(1780, 810, P2D);
+  size(1755, 810, P2D);
   cour = createFont("\\data\\cour.ttf", 14);
-  smooth();
-  frameRate(30);
+  smooth(4);
+  frameRate(25);
   background(240);
   mapWidth = height/3*5;
   newPathfinder = new Pathfinder();
@@ -61,34 +59,37 @@ void setup() {
   waypoints();
 }
 
-void draw() {
+void draw() { 
   raster();
   createMapImage();
   gridMaster();
   createNewMap();
   if (mouseClicked == true) {
-    image(mapImageBfull, 0, 0);
+    tint(200, 5);
+    //image(mapImageBfull, 0, 0);
     lifecycle++;
+    net();
     pathfinder();
     for (int i = 0; i < waypoint.length; i++) {     
       waypoint[i].display();
       waypoint[i].update();
       resource();
-      printData();
+      //printData();
     }
-    net();
-    waypointsGrowth();
+    waypointsGrowth();   
+    xml();
   }
   showImage();
+  saveFrame("\\capture\\capture_####.jpg");
 }
 
 void keyPressed () {
   if (key == 's') {
-    saveFrame ("\\capture\\capture_####.jpg");
+    saveFrame("\\capture\\capture_####.jpg");
   }
 }
 
-void raster() { // determines the number of partial images.
+void raster() { // Determines the number of partial images.
   rasterMapBountX = systemSize*5;
   rasterMapBountY = rasterMapBountX/5*3;
   rasterMapBountXY = rasterMapBountX*rasterMapBountY;
@@ -96,7 +97,7 @@ void raster() { // determines the number of partial images.
   mapPartWidth = mapWidth/rasterMapBountX;
 }
 
-void gridMaster() { // generated vectors according "raster()".
+void gridMaster() { // Generated vectors according "raster()".
   int k = 0;
   for (int j = 0; j < rasterMapBountY; j++) {    
     for (int i = 0; i < rasterMapBountX; i++) {      
@@ -106,7 +107,7 @@ void gridMaster() { // generated vectors according "raster()".
   }
 }
 
-void createMapImage() { // converts "mapOrg" into whole pixel image "mapImage..".
+void createMapImage() { // Converts "mapOrg" into whole pixel image "mapImage..".
   mapImageA = new PImage[rasterMapBountXY];
   mapImageB = new PImage[rasterMapBountXY];
   for (int i = 0; i < rasterMapBountXY; i++) {
@@ -117,7 +118,7 @@ void createMapImage() { // converts "mapOrg" into whole pixel image "mapImage.."
   }
 }
 
-void mapA() { // disassembled PImage "mapOrg" in subpictures "mapImageB[]".
+void mapA() { // Disassembled PImage "mapOrg" in subpictures "mapImageB[]".
   for (int l = 0; l < rasterMapBountY; l++) {
     for (int k = 0; k < rasterMapBountX; k++) {
       for (int j = 0; j < mapPartWidth; j++) {
@@ -132,7 +133,7 @@ void mapA() { // disassembled PImage "mapOrg" in subpictures "mapImageB[]".
   }
 }
 
-void mapB() { // reorders "mapImageB[]".
+void mapB() { // Reorders "mapImageB[]".
   int[] randomXY =  new int[rasterMapBountXY];
   for (int i = 0; i < randomXY.length; i++) {
     randomXY[i] = i;
@@ -154,7 +155,7 @@ void mapB() { // reorders "mapImageB[]".
   image(mapImageBfull, 0, 0);
 }
 
-void createNewMap() { // creates a new map according to "map..()".
+void createNewMap() { // Creates a new map according to "map..()".
   if (mousePressed == true) {
     mouseClicked = false;
     boolean t = true;
@@ -169,7 +170,7 @@ void createNewMap() { // creates a new map according to "map..()".
   }
 }
 
-void waypointCoordinate() { // generates the coordinates for "waypoints()".
+void waypointCoordinate() { // Generates the coordinates for "waypoint[]".
   waypointCoordinate = new PVector[waypoint.length];
   int rand = 100;
   for (int i = 0; i < waypoint.length; i++) {
@@ -177,13 +178,13 @@ void waypointCoordinate() { // generates the coordinates for "waypoints()".
   }
 }
 
-void waypoints() { // generates the "waypoint[]".
+void waypoints() { // Generates the "waypoint[]".
   for (int i = 0; i < waypoint.length; i++) {
     waypoint[i] = new Waypoints(waypointCoordinate[i].x, waypointCoordinate[i].y, radiusWaypoint, 1);
   }
 }
 
-void waypointsGrowth() { // calculates the growth of each "waypoint[]".
+void waypointsGrowth() { // Calculates the growth of each "waypoint[]".
   waypointsGrowthTotal = -waypoint.length*sq(radiusWaypoint)/2;
   for (int i = 0; i < waypoint.length; i++) {
     waypointsGrowth[i] = sq((waypoint[i].radius))/2;
@@ -200,7 +201,7 @@ void waypointsGrowth() { // calculates the growth of each "waypoint[]".
   }
 }
 
-void net() {
+void net() { // Draws a net between "waypoint[]" and "pathfinder()".
   for (int j = 0; j < path.length; j++) {
     for (int i = 0; i < waypoint.length; i++) {
       if (dist(path[j].x, path[j].y, waypoint[i].xpos, waypoint[i].ypos) < 100) {
@@ -210,21 +211,28 @@ void net() {
       }
     }
   }
+  for (int j = 0; j < path.length; j++) {
+    for (int i = 0; i < path.length; i++) {
+      if (dist(path[j].x, path[j].y, path[i].x, path[i].y) < 3) {
+        path[j].x = path[i].x;
+        path[j].y = path[i].y;
+      }
+    }
+  }
 }
 
-void resource() {
+void resource() { // Calculates the "consumption" of the "waypoint[]" according to the hits in relation to each other.
   if (lifecycle == 1) {
     maxResource += resourceCecycle;
     lifecycle = 0;
   }
   for (int i = 0; i < waypoint.length; i++) {
     resource[i] = maxResource/waypointsGrowthTotal*waypoint[i].gain;
-    delatResource[i] = resource[i]*waypoint[i].gain;
+    deltaResource[i] = resource[i]*waypoint[i].gain;
     float[] r = new float[waypoint.length];
-    if (countHitTot > 3) {
-      r[i] = delatResource[i] * 100;
-      //noStroke();
-      fill(255, 255, 200, 5);
+    if (countHitTot > 2) {
+      r[i] = deltaResource[i] * 100;
+      fill(100, 10);
       ellipse(waypoint[i].xpos, waypoint[i].ypos, r[i], r[i]);
     }
   }
@@ -235,7 +243,7 @@ class Waypoints {
   float ypos;
   float gain;
   PVector pos;
-  int radius;
+  float radius;
   int border = 400;
 
   Waypoints(float tempX, float tempY, int tempRadius, float tempGain) {
@@ -253,12 +261,12 @@ class Waypoints {
   void update() {
     if (sq(xpos - pathfinder.x) < border && sq(ypos - pathfinder.y) < border) {
       gain += 0.1;
-      radius += gain;
+      radius += gain + float(rss)/50;
     }
   }
 }
 
-void photos() { // loads the photos of the waypoints.
+void photos() { // Loads the photos of the waypoints.
   photo = new PImage[nPhotos];
   for (int i = 0; i < nPhotos; i++) {
     photo[i] = loadImage("\\img\\felderkundung_" + i + ".jpg");
@@ -266,34 +274,26 @@ void photos() { // loads the photos of the waypoints.
   }
 }
 
-void showImage() { // shows photos according to "pathfinder()".
+void showImage() { // Shows photos according to "pathfinder()".
   float[] deltaPos = new float[nPhotos];
   if (mouseClicked == true) {
     for (int i = 0; i < nPhotos; i++) {
       deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, pathfinder.x, pathfinder.y);
     }
   }
-  for (int i = 0; i < nPhotos/3; i++) {
-    if (deltaPos[i] < 200) {
-      image(photo[i], width - photo[i].width, 0);
-    }
-  }
-  for (int i = nPhotos/3; i < nPhotos/3*2; i++) {
-    if (deltaPos[i] < 200) {
-      image(photo[i], width - photo[i].width, height/3);
-    }
-  }
-  for (int i = nPhotos/3*2; i < nPhotos; i++) {
-    if (deltaPos[i] < 200) {
-      image(photo[i], width - photo[i].width, height/3*2);
+  for (int j = 0; j < 3; j++) {
+    for (int i = nPhotos/3*j; i < nPhotos/3*(j+1); i++) {
+      if (deltaPos[i] < 200) {
+        image(photo[i], width - photo[i].width, height/3*j);
+      }
     }
   }
 }
 
-void pathfinder() { // is looking for "waypoints[]" on the map and draw a "path[]".
+void pathfinder() { // Is looking for "waypoints[]" on the map and draw a "path[]".
   newPathfinder.move();
   newPathfinder.force();
-  newPathfinder.display();
+  //newPathfinder.display();
   newPathfinder.path();
 }
 
@@ -301,12 +301,11 @@ class Pathfinder {
   float maxSpeed = 0.5;
   float n = 2;
   color c;
-  float xpos;
-  float ypos;
-  float xspeed;
-  float yspeed;
+  float xpos, ypos;
+  float xspeed, yspeed;
   int rand, distance;
   float[] deltaPos = new float [numberWaypoints];
+  float rigth, left, top, bottom;
 
   Pathfinder() {
     rand = 25;
@@ -333,7 +332,7 @@ class Pathfinder {
   void move() {
     pathfinder = new PVector(xpos, ypos);
     xpos = xpos + xspeed;
-    if (xpos > mapWidth-rand || xpos < rand) {
+    if (xpos > width-rand || xpos < rand) {
       xspeed *= -1;
     }
     ypos = ypos + yspeed;
@@ -353,6 +352,16 @@ class Pathfinder {
         yspeed += (n/deltaPos[i])*maxSpeed;
       }
     }
+    left = pathfinder.x;
+    rigth = width - pathfinder.x;
+    top = pathfinder.y;
+    bottom = height - pathfinder.y;
+    if (rigth < 300) {
+      xspeed -= 100/rigth;
+    }
+    if (left < 100) {
+      xspeed += 100/left;
+    }
   }
   void path() {
     if (count < cycles) {
@@ -365,21 +374,69 @@ class Pathfinder {
       }
     }
     for (int i = 0; i < path.length; i++) {
-      fill(colorPath);
+      fill(colorStroke);
       noStroke();
       ellipse(path[i].x, path[i].y, 2, 2);
     }
   }
 }
 
-void printData() { // displays information on the screen.
+void xml() { // Imports rss-feeds and count specific data.
+  textSize(10);
+  textFont(cour);
+  fill(150, 50);
+  rss = 0;
+  search = new String[4];
+  search[0] = "luzern";
+  search[1] = "emmen";
+  search[2] = "stadt";
+  search[3] = "haus";
+  rssZS = loadXML("https://www.srf.ch/news/bnf/rss/1966");
+  rssLU = loadXML("http://www.luzernerzeitung.ch/storage/rss/rss/kanton_luzern.xml");
+  XML[] titlesZS = rssZS.getChildren("channel/item/title");
+  XML[] descriptionsZS = rssZS.getChildren("channel/item/description");  
+  XML[] titlesLU = rssLU.getChildren("channel/item/title");
+  XML[] descriptionsLU = rssZS.getChildren("channel/item/description");
+  for (int i = 0; i < titlesZS.length; i++) {   
+    titleZS = new String[titlesZS.length];
+    titlesZS[i].getContent();
+    titleZS[i] = titlesZS[i].getContent();
+    descriptionZS = new String[titlesZS.length];
+    descriptionsZS[i].getContent();   
+    descriptionZS[i] = descriptionsZS[i].getContent();
+    for (int j =0; j < search.length; j++) {
+      if (titleZS[i].contains(search[j]) || descriptionZS[i].contains(search[j]) == true) {
+        rss++;
+        println("RSS ZS: ", i, titleZS[i]);
+      }
+    }
+    text(titleZS[i] + "   " + descriptionZS[i], 0, 12*i);
+  }
+  for (int i = 0; i < titlesLU.length; i++) {  
+    titleLU = new String[titlesLU.length];
+    titlesLU[i].getContent();
+    titleLU[i] = titlesLU[i].getContent();
+    descriptionLU = new String[titlesLU.length];
+    descriptionsLU[i].getContent();   
+    descriptionLU[i] = descriptionsLU[i].getContent();
+    for (int j =0; j < search.length; j++) {
+      if (titleLU[i].contains(search[j]) || descriptionLU[i].contains(search[j]) == true) {
+        rss++;
+        println("RSS LU: ", i, titleLU[i]);
+      }
+    }
+  }  
+  println("Total: ", rss);
+}
+
+void printData() { // Displays information on the screen, isn't used for praesentation.
   int time = millis()/1000;
-  float rate = waypointsGrowthTotal/maxResource;
+  float rate = maxResource/waypointsGrowthTotal;
   fill(240);
   noStroke();
-  rect(0, height, mapPartWidth*6, 40);
+  rect(0, height, width, 40);
   fill(0);
   textFont(cour);
   textSize(14);
-  text("Cycles: " + count + "/" + cycles + " - Time: " + time + "s" + " - Hits: " + countHitTot + "/" + numberWaypoints + " - Rate: " + rate, 10, height-5);
+  text("Cycles: " + count + "/" + cycles + " - Time: " + time + "s" + " - Hits: " + countHitTot + "/" + numberWaypoints + " - Rate: " + int(rate*100) + " - Nodes: " + sq(cycles)*numberWaypoints, 10, height-5);
 }
