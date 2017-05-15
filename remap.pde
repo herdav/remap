@@ -2,85 +2,104 @@
 // HSLU D&K - IDA Enzyklopaedie Emmenbruecke
 // -----------------------------------------
 
+RSS feedZS, feedLU;
+Pathfinder pathfinderA;
+Waypoints[] waypoint;
+
 int cycles = 4000;
-int numberWaypoints = 21;
+int numberWaypoints = 30;
 int radiusWaypoint = 10;
 int nPhotos = 21;
-int count = 0;
-int lifecycle = 0;
-int systemSize = 3;
-int rss;
+
+int systemSize = 5;
+int textSize = 14;
+
 float maxResource = 100;
-float resourceCecycle = 0.2;
-color colorStroke = color(255, 0, 0, 200);
-color colorWaypoint = color(0, 100);
+float resourceCycle = 0.2;
+
+color colorStroke = color(0, 255, 0, 150);
+color colorWaypoint = color(100, 100);
 color colorPath = color(255, 50);
+
 PImage mapOrg, mapImageBfull;
-PImage[] mapImageA, mapImageB, photo;
+PImage[] mapImageA, mapImageB;
+
 int countHitTot;
 int[] countHits = new int[numberWaypoints];
 int mapWidth, mapPartWidth;
 int rasterMapBountX, rasterMapBountY, rasterMapBountXY;
+int rss, countRSS, totResource;
+int newCycle, cycle, count;
+
 float[] waypointsGrowth = new float[numberWaypoints];
 float[] resource = new float[numberWaypoints];
 float[] deltaResource = new float[numberWaypoints];
-float waypointsGrowthTotal;
+float waypointsGrowthTotal, speedPathfinder, gainRSS;
+
 PVector pathfinder;
 PVector[] gridMaster, waypointCoordinate;
 PVector[] path = new PVector[cycles];
+
 boolean mouseClicked;
 boolean[] countHit = new boolean[numberWaypoints];
+
 PFont cour;
-XML rssZS, rssLU;
-String[] search;
-String[] ZS, titleZS, descriptionZS;
-String[] LU, titleLU, descriptionLU;
-Pathfinder newPathfinder;
-Waypoints[] waypoint;
+
+String[] search, text;
 
 void setup() {
-  size(1755, 810, P2D);
-  cour = createFont("\\data\\cour.ttf", 14);
+  size(1920, 960, P2D); 
   smooth(4);
   frameRate(25);
   background(240);
+  cour = createFont("\\data\\cour.ttf", textSize);
+  
   mapWidth = height/3*5;
-  newPathfinder = new Pathfinder();
+  pathfinderA = new Pathfinder();
   waypoint = new Waypoints[numberWaypoints];
   for (int i = 0; i < path.length; i++) {
     path[i] = new PVector(0, 0);
-  }
+  } 
   mapOrg = loadImage("\\img\\map_2400x4000_sw.jpg");
   mapOrg.resize(mapWidth, height);
   mapOrg.loadPixels();
   image(mapOrg, 0, 0);
-  photos();
   waypointCoordinate();
   waypoints();
-}
-
-void draw() { 
+  xml();
   raster();
   createMapImage();
   gridMaster();
-  createNewMap();
-  if (mouseClicked == true) {
-    tint(200, 5);
-    //image(mapImageBfull, 0, 0);
-    lifecycle++;
+  mapA();
+  mapB();
+}
+
+void draw() {
+  if (cycle++ <= cycles) {
+    int t = millis();
+    image(mapImageBfull, 0, 0);
+    newCycle++;
+    cycle++;
     net();
     pathfinder();
+    totResource = 0;
+    
     for (int i = 0; i < waypoint.length; i++) {     
       waypoint[i].display();
       waypoint[i].update();
       resource();
-      //printData();
+      waypointsGrowth();
     }
-    waypointsGrowth();   
+    
     xml();
+    
+    t = millis() - t;
+    println("hits:", countHitTot + "/" + numberWaypoints, " rss:", gainRSS, "-", rss + "/" + countRSS,
+      " cycle:", t + "ms", "-", cycle + "/" + cycles, " speed:", speedPathfinder, "-", int((speedPathfinder/t)*1000) + "px/s", 
+      " nodes:", int(numberWaypoints*cycles + sq(numberWaypoints)));
+
+    saveFrame("\\capture\\capture_####.jpg");
   }
-  showImage();
-  saveFrame("\\capture\\capture_####.jpg");
 }
 
 void keyPressed () {
@@ -155,45 +174,34 @@ void mapB() { // Reorders "mapImageB[]".
   image(mapImageBfull, 0, 0);
 }
 
-void createNewMap() { // Creates a new map according to "map..()".
-  if (mousePressed == true) {
-    mouseClicked = false;
-    boolean t = true;
-    while (t == true) {
-      if (t == true) {
-        mapA();
-        mapB();
-        t = false;
-      }
-      mouseClicked = true;
-    }
-  }
-}
-
 void waypointCoordinate() { // Generates the coordinates for "waypoint[]".
   waypointCoordinate = new PVector[waypoint.length];
   int rand = 100;
+
   for (int i = 0; i < waypoint.length; i++) {
-    waypointCoordinate[i] = new PVector(random(rand, mapWidth-rand), random(rand, height-rand));
+    waypointCoordinate[i] = new PVector(random(rand, width-rand), random(rand, height-rand));
   }
 }
 
 void waypoints() { // Generates the "waypoint[]".
   for (int i = 0; i < waypoint.length; i++) {
-    waypoint[i] = new Waypoints(waypointCoordinate[i].x, waypointCoordinate[i].y, radiusWaypoint, 1);
+    waypoint[i] = new Waypoints(waypointCoordinate[i].x, waypointCoordinate[i].y, radiusWaypoint, gainRSS);
   }
 }
 
 void waypointsGrowth() { // Calculates the growth of each "waypoint[]".
   waypointsGrowthTotal = -waypoint.length*sq(radiusWaypoint)/2;
+
   for (int i = 0; i < waypoint.length; i++) {
     waypointsGrowth[i] = sq((waypoint[i].radius))/2;
     waypointsGrowthTotal += waypointsGrowth[i];
+
     if (waypoint[i].radius > radiusWaypoint) {
       countHit[i] = true;
     }
   }
   countHitTot = 0;
+
   for (int i = 0; i < waypoint.length; i++) {
     if (countHit[i] == true) {
       countHitTot += 1;
@@ -222,17 +230,19 @@ void net() { // Draws a net between "waypoint[]" and "pathfinder()".
 }
 
 void resource() { // Calculates the "consumption" of the "waypoint[]" according to the hits in relation to each other.
-  if (lifecycle == 1) {
-    maxResource += resourceCecycle;
-    lifecycle = 0;
+  if (newCycle == 1) {
+    maxResource += resourceCycle;
+    newCycle = 0;
   }
   for (int i = 0; i < waypoint.length; i++) {
     resource[i] = maxResource/waypointsGrowthTotal*waypoint[i].gain;
+    totResource += resource[i];
     deltaResource[i] = resource[i]*waypoint[i].gain;
     float[] r = new float[waypoint.length];
+    
     if (countHitTot > 2) {
       r[i] = deltaResource[i] * 100;
-      fill(100, 10);
+      fill(0, 255, 0, 5);
       ellipse(waypoint[i].xpos, waypoint[i].ypos, r[i], r[i]);
     }
   }
@@ -260,46 +270,23 @@ class Waypoints {
   }
   void update() {
     if (sq(xpos - pathfinder.x) < border && sq(ypos - pathfinder.y) < border) {
-      gain += 0.1;
-      radius += gain + float(rss)/50;
-    }
-  }
-}
-
-void photos() { // Loads the photos of the waypoints.
-  photo = new PImage[nPhotos];
-  for (int i = 0; i < nPhotos; i++) {
-    photo[i] = loadImage("\\img\\felderkundung_" + i + ".jpg");
-    photo[i].resize(height/6*3, height/3);
-  }
-}
-
-void showImage() { // Shows photos according to "pathfinder()".
-  float[] deltaPos = new float[nPhotos];
-  if (mouseClicked == true) {
-    for (int i = 0; i < nPhotos; i++) {
-      deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, pathfinder.x, pathfinder.y);
-    }
-  }
-  for (int j = 0; j < 3; j++) {
-    for (int i = nPhotos/3*j; i < nPhotos/3*(j+1); i++) {
-      if (deltaPos[i] < 200) {
-        image(photo[i], width - photo[i].width, height/3*j);
-      }
+      gain += gainRSS;
+      radius += gain;
     }
   }
 }
 
 void pathfinder() { // Is looking for "waypoints[]" on the map and draw a "path[]".
-  newPathfinder.move();
-  newPathfinder.force();
-  //newPathfinder.display();
-  newPathfinder.path();
+  pathfinderA.move();
+  pathfinderA.force();
+  pathfinderA.path();
+
+  speedPathfinder = float(int(sqrt(sq(pathfinderA.xspeed) + sq(pathfinderA.yspeed))*10))/10;
 }
 
 class Pathfinder {
-  float maxSpeed = 0.5;
-  float n = 2;
+  float maxSpeed = 6;
+  float n = 1;
   color c;
   float xpos, ypos;
   float xspeed, yspeed;
@@ -309,33 +296,20 @@ class Pathfinder {
 
   Pathfinder() {
     rand = 25;
-    distance = 100;
-    xpos = 500;
+    distance = 200;
+    xpos = 200;
     ypos = 200;
     xspeed = 0;
     yspeed = 0;
   }
-  void display() {
-    rectMode(CENTER);
-    noStroke();
-    noFill();
-    strokeWeight(2);
-    stroke(colorStroke);
-    ellipse(xpos, ypos, 50, 50);
-    for (int i = 0; i < waypoint.length; i++) {
-      if (deltaPos[i] < distance) {
-        strokeWeight(2);
-        line(waypointCoordinate[i].x, waypointCoordinate[i].y, pathfinder.x, pathfinder.y);
-      }
-    }
-  }
   void move() {
     pathfinder = new PVector(xpos, ypos);
     xpos = xpos + xspeed;
+    ypos = ypos + yspeed;
+
     if (xpos > width-rand || xpos < rand) {
       xspeed *= -1;
     }
-    ypos = ypos + yspeed;
     if (ypos > height-rand || ypos < rand) {
       yspeed *= -1;
     }
@@ -343,24 +317,39 @@ class Pathfinder {
   void force() {
     for (int i = 0; i < waypoint.length; i++) {
       deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, pathfinder.x, pathfinder.y);
+
       if (deltaPos[i] < distance) {
-        xspeed -= (n/deltaPos[i])*maxSpeed;
-        yspeed -= (n/deltaPos[i])*maxSpeed;
+        xspeed -= (n/deltaPos[i]);
+        yspeed -= (n/deltaPos[i]);
       }
       if (deltaPos[i] > distance) {
-        xspeed += (n/deltaPos[i])*maxSpeed;
-        yspeed += (n/deltaPos[i])*maxSpeed;
+        xspeed += (n/deltaPos[i]);
+        yspeed += (n/deltaPos[i]);
       }
     }
     left = pathfinder.x;
     rigth = width - pathfinder.x;
     top = pathfinder.y;
     bottom = height - pathfinder.y;
-    if (rigth < 300) {
+
+    if (rigth < 200) {
       xspeed -= 100/rigth;
+      yspeed -= 50/rigth;
     }
     if (left < 100) {
       xspeed += 100/left;
+    }
+    if (xspeed > maxSpeed) {
+      xspeed = maxSpeed;
+    }
+    if (xspeed < -maxSpeed) {
+      xspeed = -maxSpeed;
+    }
+    if (yspeed > maxSpeed) {
+      yspeed = maxSpeed;
+    }
+    if (yspeed < -maxSpeed) {
+      yspeed = -maxSpeed;
     }
   }
   void path() {
@@ -382,61 +371,69 @@ class Pathfinder {
 }
 
 void xml() { // Imports rss-feeds and count specific data.
-  textSize(10);
-  textFont(cour);
-  fill(150, 50);
   rss = 0;
+  textSize(textSize);
+  textFont(cour);
+  fill(0, 255, 0, 100);
+
   search = new String[4];
-  search[0] = "luzern";
-  search[1] = "emmen";
-  search[2] = "stadt";
-  search[3] = "haus";
-  rssZS = loadXML("https://www.srf.ch/news/bnf/rss/1966");
-  rssLU = loadXML("http://www.luzernerzeitung.ch/storage/rss/rss/kanton_luzern.xml");
-  XML[] titlesZS = rssZS.getChildren("channel/item/title");
-  XML[] descriptionsZS = rssZS.getChildren("channel/item/description");  
-  XML[] titlesLU = rssLU.getChildren("channel/item/title");
-  XML[] descriptionsLU = rssZS.getChildren("channel/item/description");
-  for (int i = 0; i < titlesZS.length; i++) {   
-    titleZS = new String[titlesZS.length];
-    titlesZS[i].getContent();
-    titleZS[i] = titlesZS[i].getContent();
-    descriptionZS = new String[titlesZS.length];
-    descriptionsZS[i].getContent();   
-    descriptionZS[i] = descriptionsZS[i].getContent();
-    for (int j =0; j < search.length; j++) {
-      if (titleZS[i].contains(search[j]) || descriptionZS[i].contains(search[j]) == true) {
-        rss++;
-        println("RSS ZS: ", i, titleZS[i]);
-      }
+  search[0] = "Luzern";
+  search[1] = "Emmen";
+  search[2] = "Stadt";
+  search[3] = "Entwicklung";
+
+  feedZS = new RSS("https://www.srf.ch/news/bnf/rss/1966");
+  feedLU = new RSS("http://www.luzernerzeitung.ch/storage/rss/rss/kanton_luzern.xml");
+
+  feedZS.loadFeed(search);  
+  feedLU.loadFeed(search);
+
+  for (int i = 0; i < feedLU.result.length; i++) {
+    if (feedLU.result[i] != null) {
+      rss++;
+      text(feedLU.result[i], -textSize, textSize+textSize*i);
     }
-    text(titleZS[i] + "   " + descriptionZS[i], 0, 12*i);
   }
-  for (int i = 0; i < titlesLU.length; i++) {  
-    titleLU = new String[titlesLU.length];
-    titlesLU[i].getContent();
-    titleLU[i] = titlesLU[i].getContent();
-    descriptionLU = new String[titlesLU.length];
-    descriptionsLU[i].getContent();   
-    descriptionLU[i] = descriptionsLU[i].getContent();
-    for (int j =0; j < search.length; j++) {
-      if (titleLU[i].contains(search[j]) || descriptionLU[i].contains(search[j]) == true) {
-        rss++;
-        println("RSS LU: ", i, titleLU[i]);
-      }
+  for (int i = 0; i < feedZS.result.length; i++) {
+    if (feedZS.result[i] != null) {
+      rss++;
+      text(feedZS.result[i], 0, 10*textSize+textSize+textSize*i);
     }
-  }  
-  println("Total: ", rss);
+  }
+
+  gainRSS = float(int((resourceCycle-1/float(rss))*100))/100;
+  countRSS = feedZS.title.length + feedLU.title.length;
 }
 
-void printData() { // Displays information on the screen, isn't used for praesentation.
-  int time = millis()/1000;
-  float rate = maxResource/waypointsGrowthTotal;
-  fill(240);
-  noStroke();
-  rect(0, height, width, 40);
-  fill(0);
-  textFont(cour);
-  textSize(14);
-  text("Cycles: " + count + "/" + cycles + " - Time: " + time + "s" + " - Hits: " + countHitTot + "/" + numberWaypoints + " - Rate: " + int(rate*100) + " - Nodes: " + sq(cycles)*numberWaypoints, 10, height-5);
+class RSS {
+  String xml;
+  String[] title, description, result;
+  XML feed;
+
+  RSS(String tempXML) {
+    xml = tempXML;
+    feed = loadXML(xml);
+  }
+  void loadFeed(String[] search) {
+    XML[] titles = feed.getChildren("channel/item/title");
+    XML[] descriptions = feed.getChildren("channel/item/description");
+
+    result = new String[titles.length];
+
+    for (int i = 0; i < titles.length; i++) {
+      title = new String[titles.length];
+      titles[i].getContent();
+      title[i] = titles[i].getContent();
+
+      description = new String[descriptions.length];
+      descriptions[i].getContent();
+      description[i] = descriptions[i].getContent();
+
+      for (int j = 0; j < search.length; j++) {
+        if (description[i].contains(search[j]) || title[i].contains(search[j]) == true) {
+          result[i] = title[i] + " - " + description[i];
+        }
+      }
+    }
+  }
 }
