@@ -9,8 +9,6 @@ Waypoints[] waypoint;
 int cycles = 4000;
 int numberWaypoints = 30;
 int radiusWaypoint = 10;
-int nPhotos = 21;
-
 int systemSize = 5;
 int textSize = 14;
 
@@ -28,7 +26,7 @@ int countHitTot;
 int[] countHits = new int[numberWaypoints];
 int mapWidth, mapPartWidth;
 int rasterMapBountX, rasterMapBountY, rasterMapBountXY;
-int rss, countRSS, totResource;
+int rss, countRSS;
 int newCycle, cycle, count;
 
 float[] waypointsGrowth = new float[numberWaypoints];
@@ -60,7 +58,7 @@ void setup() {
   for (int i = 0; i < path.length; i++) {
     path[i] = new PVector(0, 0);
   } 
-  mapOrg = loadImage("\\img\\map_2400x4000_sw.jpg");
+  mapOrg = loadImage("\\img\\map_2400x4000_bw.jpg");
   mapOrg.resize(mapWidth, height);
   mapOrg.loadPixels();
   image(mapOrg, 0, 0);
@@ -82,27 +80,21 @@ void draw() {
     cycle++;
     net();
     pathfinder();
-    totResource = 0;
-    
     for (int i = 0; i < waypoint.length; i++) {     
       waypoint[i].display();
       waypoint[i].update();
       resource();
       waypointsGrowth();
-    }
-    
-    xml();
-    
+    }    
+    xml(); 
     t = millis() - t;
     println("hits:", countHitTot + "/" + numberWaypoints, " rss:", gainRSS, "-", rss + "/" + countRSS,
-      " cycle:", t + "ms", "-", cycle + "/" + cycles, " speed:", speedPathfinder, "-", int((speedPathfinder/t)*1000) + "px/s", 
-      " nodes:", int(numberWaypoints*cycles + sq(numberWaypoints)));
-
+      " cycle:", t + "ms", "-", cycle + "/" + cycles, " speed:", speedPathfinder, "-", int((speedPathfinder/t)*1000) + "px/s");
     saveFrame("\\capture\\capture_####.jpg");
   }
 }
 
-void keyPressed () {
+void keyPressed () { // Saves screenshot under specific folder.
   if (key == 's') {
     saveFrame("\\capture\\capture_####.jpg");
   }
@@ -177,7 +169,6 @@ void mapB() { // Reorders "mapImageB[]".
 void waypointCoordinate() { // Generates the coordinates for "waypoint[]".
   waypointCoordinate = new PVector[waypoint.length];
   int rand = 100;
-
   for (int i = 0; i < waypoint.length; i++) {
     waypointCoordinate[i] = new PVector(random(rand, width-rand), random(rand, height-rand));
   }
@@ -191,17 +182,14 @@ void waypoints() { // Generates the "waypoint[]".
 
 void waypointsGrowth() { // Calculates the growth of each "waypoint[]".
   waypointsGrowthTotal = -waypoint.length*sq(radiusWaypoint)/2;
-
   for (int i = 0; i < waypoint.length; i++) {
     waypointsGrowth[i] = sq((waypoint[i].radius))/2;
     waypointsGrowthTotal += waypointsGrowth[i];
-
     if (waypoint[i].radius > radiusWaypoint) {
       countHit[i] = true;
     }
   }
   countHitTot = 0;
-
   for (int i = 0; i < waypoint.length; i++) {
     if (countHit[i] == true) {
       countHitTot += 1;
@@ -236,10 +224,8 @@ void resource() { // Calculates the "consumption" of the "waypoint[]" according 
   }
   for (int i = 0; i < waypoint.length; i++) {
     resource[i] = maxResource/waypointsGrowthTotal*waypoint[i].gain;
-    totResource += resource[i];
     deltaResource[i] = resource[i]*waypoint[i].gain;
-    float[] r = new float[waypoint.length];
-    
+    float[] r = new float[waypoint.length];    
     if (countHitTot > 2) {
       r[i] = deltaResource[i] * 100;
       fill(0, 255, 0, 5);
@@ -292,7 +278,7 @@ class Pathfinder {
   float xspeed, yspeed;
   int rand, distance;
   float[] deltaPos = new float [numberWaypoints];
-  float rigth, left, top, bottom;
+  float rigth, left;
 
   Pathfinder() {
     rand = 25;
@@ -304,6 +290,7 @@ class Pathfinder {
   }
   void move() {
     pathfinder = new PVector(xpos, ypos);
+    
     xpos = xpos + xspeed;
     ypos = ypos + yspeed;
 
@@ -317,7 +304,6 @@ class Pathfinder {
   void force() {
     for (int i = 0; i < waypoint.length; i++) {
       deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, pathfinder.x, pathfinder.y);
-
       if (deltaPos[i] < distance) {
         xspeed -= (n/deltaPos[i]);
         yspeed -= (n/deltaPos[i]);
@@ -329,8 +315,6 @@ class Pathfinder {
     }
     left = pathfinder.x;
     rigth = width - pathfinder.x;
-    top = pathfinder.y;
-    bottom = height - pathfinder.y;
 
     if (rigth < 200) {
       xspeed -= 100/rigth;
@@ -365,7 +349,7 @@ class Pathfinder {
     for (int i = 0; i < path.length; i++) {
       fill(colorStroke);
       noStroke();
-      ellipse(path[i].x, path[i].y, 2, 2);
+      ellipse(path[i].x, path[i].y, 4, 4);
     }
   }
 }
@@ -400,7 +384,6 @@ void xml() { // Imports rss-feeds and count specific data.
       text(feedZS.result[i], 0, 10*textSize+textSize+textSize*i);
     }
   }
-
   gainRSS = float(int((resourceCycle-1/float(rss))*100))/100;
   countRSS = feedZS.title.length + feedLU.title.length;
 }
