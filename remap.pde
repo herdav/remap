@@ -3,23 +3,23 @@
 // -----------------------------------------
 
 RSS feedZS, feedLU;
-Pathfinder pathfinderA;
+wanderer wandererA;
 Waypoints[] waypoint;
 
 // Setup -----------------------------------
 
-int cycles = 4000;
+int cycles = 8000;
 int maxCycles = 8000;
 boolean showMAP = true;
 boolean showXML = true;
-boolean video = true;
+boolean video = false;
 
 // -----------------------------------------
 
-int numberWaypoints = 30;
+int numberWaypoints = 90;
 int radiusWaypoint = 10;
-int systemSize = 5;
-int textSize = 16;
+int systemSize = 4;
+int textSize = 30;
 
 float maxResource = 100;
 float resourceCycle = 0.2;
@@ -33,12 +33,12 @@ color colorText = color(255, 200);
 PImage mapOrg, mapImageBfull;
 PImage[] mapImageA, mapImageB;
 
-int countHitTot;
-int[] countHits = new int[numberWaypoints];
+int explorations;
+int[] countExplorations = new int[numberWaypoints];
 int mapWidth, mapPartWidth;
 int rasterMapBountX, rasterMapBountY, rasterMapBountXY;
 int rss, countRSS;
-int newCycle, cycle, count;
+int cycleResource, cycle, count;
 int day = day();
 int month = month();
 int year = year();
@@ -46,38 +46,34 @@ int year = year();
 float[] waypointsGrowth = new float[numberWaypoints];
 float[] resource = new float[numberWaypoints];
 float[] deltaResource = new float[numberWaypoints];
-float waypointsGrowthTotal, speedPathfinder, gainRSS;
+float waypointsGrowthTotal, speedWanderer, gainRSS;
 
-PVector pathfinder;
+PVector wanderer;
 PVector[] gridMaster, waypointCoordinate;
 PVector[] path = new PVector[cycles];
 
 boolean mouseClicked;
-boolean[] countHit = new boolean[numberWaypoints];
+boolean[] countExploration = new boolean[numberWaypoints];
 
 PFont cour;
 
 String[] search, text;
 
 void setup() {
-  size(1920, 960, P2D); 
+  size(3000, 1500, P2D); //1840, 920
   smooth(8);
   frameRate(25);
   background(colorBackground);
-
   cour = createFont("\\data\\courbd.ttf", textSize);
-
   mapWidth = height / 3 * 5;
-  pathfinderA = new Pathfinder();
+  wandererA = new wanderer();
   waypoint = new Waypoints[numberWaypoints];
   for (int i = 0; i < path.length; i++) {
     path[i] = new PVector(0, 0);
   }
-
   mapOrg = loadImage("\\img\\map_2400x4000_bw_light.jpg");
   mapOrg.resize(mapWidth, height);
   mapOrg.loadPixels();
-
   waypointCoordinate();
   waypoints();
   xml();
@@ -90,13 +86,11 @@ void setup() {
 
 void draw() {
   int millis = millis();
-
-  if (cycle > maxCycles - 50) {
+  if (cycle > 100) {
     showMAP = false;
     showXML = false;
   }
-
-  if (cycle++ <= maxCycles) {
+  if (cycle <= maxCycles) {
     if (showMAP == true) {
       image(mapImageBfull, 0, 0);
     }
@@ -104,25 +98,21 @@ void draw() {
       fill(colorBackground);
       rect(0, 0, width, height);
     }
-
-    newCycle++;
+    cycleResource++;
     cycle++;
     xml();
     net();
-    pathfinder();
+    wanderer();
     date();
-
     for (int i = 0; i < waypoint.length; i++) {     
       waypoint[i].display();
       waypoint[i].update();
       resource();
       waypointsGrowth();
-    }
-
+    }    
     millis = millis() - millis;
-
-    println("hits:", countHitTot + "/" + numberWaypoints, " rss:", gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, 
-      " cycle:", millis + "ms", "-", cycle + "/" + maxCycles + "(" + cycles + ")", " speed:", speedPathfinder, "-", int((speedPathfinder/millis)*1000) + "px/s");
+    println("explorations:", explorations + "/" + numberWaypoints, " rss:", gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, 
+      " speed:", speedWanderer, " cycle:", cycle + "/" + maxCycles + "(" + cycles + ")", "-", millis + "ms");
 
     if (video == true) {
       saveFrame("\\capture\\video_####.jpg");
@@ -132,19 +122,18 @@ void draw() {
 
 void keyPressed () { // Saves screenshot under specific folder.
   if (key == 's') {
-    saveFrame("\\capture\\capture_####.jpg");
+    saveFrame("\\capture\\capture_####.jpg");   
   }
 }
 
-void date() {
+void date() { // Shows date and time on screen.
   int minute = minute();
   int hour = hour();
-
   textSize(textSize);
   textFont(cour);
   textAlign(LEFT);
   fill(255, 210);
-  text(day + "." + month + "." + year + " " + hour + ":" + minute, width - systemSize * mapPartWidth + 15, height - 15);
+  text(day + "." + month + "." + year + " " + hour + ":" + minute, width - systemSize * mapPartWidth + 30, height - 30);
 }
 
 void raster() { // Determines the number of partial images.
@@ -215,9 +204,9 @@ void mapB() { // Reorders "mapImageB[]".
 
 void waypointCoordinate() { // Generates the coordinates for "waypoint[]".
   waypointCoordinate = new PVector[waypoint.length];
-  int rand = 200;
+  int rand = height / 6;
   for (int i = 0; i < waypoint.length; i++) {
-    waypointCoordinate[i] = new PVector(random(rand, width-rand/2), random(rand, height-rand));
+    waypointCoordinate[i] = new PVector(random(rand, width-2*rand), random(rand, height-rand));
   }
 }
 
@@ -233,21 +222,21 @@ void waypointsGrowth() { // Calculates the growth of each "waypoint[]".
     waypointsGrowth[i] = sq((waypoint[i].radius))/2;
     waypointsGrowthTotal += waypointsGrowth[i];
     if (waypoint[i].radius > radiusWaypoint) {
-      countHit[i] = true;
+      countExploration[i] = true;
     }
   }
-  countHitTot = 0;
+  explorations = 0;
   for (int i = 0; i < waypoint.length; i++) {
-    if (countHit[i] == true) {
-      countHitTot += 1;
+    if (countExploration[i] == true) {
+      explorations += 1;
     }
   }
 }
 
-void net() { // Draws a net between "waypoint[]" and "pathfinder()".
+void net() { // Draws a net between "waypoint[]" and "wanderer()".
   for (int j = 0; j < path.length; j++) {
     for (int i = 0; i < waypoint.length; i++) {
-      if (dist(path[j].x, path[j].y, waypoint[i].xpos, waypoint[i].ypos) < 100) {
+      if (dist(path[j].x, path[j].y, waypoint[i].xpos, waypoint[i].ypos) < height / 8) {
         strokeWeight(1);
         stroke(colorStroke);
         line(path[j].x, path[j].y, waypoint[i].xpos, waypoint[i].ypos);
@@ -257,15 +246,15 @@ void net() { // Draws a net between "waypoint[]" and "pathfinder()".
 }
 
 void resource() { // Calculates the "consumption" of the "waypoint[]" according to the hits in relation to each other.
-  if (newCycle == 1) {
+  if (cycleResource == 1) {
     maxResource += resourceCycle;
-    newCycle = 0;
+    cycleResource = 0;
   }
   for (int i = 0; i < waypoint.length; i++) {
     resource[i] = maxResource/waypointsGrowthTotal*waypoint[i].gain;
     deltaResource[i] = resource[i]*waypoint[i].gain;
     float[] r = new float[waypoint.length];    
-    if (countHitTot > 2) {
+    if (explorations > 2) {
       r[i] = deltaResource[i] * 100;
       fill(0, 255, 0, 5);
       ellipse(waypoint[i].xpos, waypoint[i].ypos, r[i], r[i]);
@@ -274,12 +263,12 @@ void resource() { // Calculates the "consumption" of the "waypoint[]" according 
 }
 
 class Waypoints {
+  int border = height / 3;
   float xpos;
   float ypos;
   float gain;
-  PVector pos;
   float radius;
-  int border = 400;
+  PVector pos;
 
   Waypoints(float tempX, float tempY, int tempRadius, float tempGain) {
     xpos = tempX;
@@ -294,24 +283,24 @@ class Waypoints {
     ellipse(xpos, ypos, radius, radius);
   }
   void update() {
-    if (sq(xpos - pathfinder.x) < border && sq(ypos - pathfinder.y) < border) {
+    if (sq(xpos - wanderer.x) < border && sq(ypos - wanderer.y) < border) {
       gain += gainRSS;
       radius += gain;
     }
   }
 }
 
-void pathfinder() { // Is looking for "waypoints[]" on the map and draw a "path[]".
-  pathfinderA.move();
-  pathfinderA.force();
-  pathfinderA.path();
+void wanderer() { // Is looking for "waypoints[]" on the map and draw a "path[]".
+  wandererA.move();
+  wandererA.force();
+  wandererA.path();
 
-  speedPathfinder = float(int(sqrt(sq(pathfinderA.xspeed) + sq(pathfinderA.yspeed))*10))/10;
+  speedWanderer = float(int(sqrt(sq(wandererA.xspeed) + sq(wandererA.yspeed))*10))/10;
 }
 
-class Pathfinder {
+class wanderer {
   float maxSpeed = 6;
-  float n = 1;
+  float n = 10;
   color c;
   float xpos, ypos;
   float xspeed, yspeed;
@@ -319,16 +308,16 @@ class Pathfinder {
   float[] deltaPos = new float [numberWaypoints];
   float rigth, left;
 
-  Pathfinder() {
-    rand = 25;
-    distance = 200;
-    xpos = random(200, width - 600);
-    ypos = random(200, height - 200);
+  wanderer() {
+    distance = height / 4;
+    rand = distance / 4;
+    xpos = width - 700;
+    ypos = height - 200;
     xspeed = 0;
     yspeed = 0;
   }
   void move() {
-    pathfinder = new PVector(xpos, ypos);
+    wanderer = new PVector(xpos, ypos);
 
     xpos = xpos + xspeed;
     ypos = ypos + yspeed;
@@ -342,25 +331,26 @@ class Pathfinder {
   }
   void force() {
     for (int i = 0; i < waypoint.length; i++) {
-      deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, pathfinder.x, pathfinder.y);
+      deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, wanderer.x, wanderer.y);
+      float attraction = 1/deltaPos[i];
       if (deltaPos[i] < distance) {
-        xspeed += (n/deltaPos[i]);
-        yspeed += (n/deltaPos[i]);
+        xspeed += attraction;
+        yspeed += attraction;
       }
       if (deltaPos[i] > distance) {
-        xspeed -= (n/deltaPos[i]);
-        yspeed -= (n/deltaPos[i]);
+        xspeed -= attraction;
+        yspeed -= attraction;
       }
     }
-    left = pathfinder.x;
-    rigth = width - pathfinder.x;
+    left = wanderer.x;
+    rigth = width - wanderer.x;
 
-    if (rigth < 200) {
-      xspeed -= 100/rigth;
-      yspeed -= 50/rigth;
+    if (rigth < height / 4) {
+      xspeed -= (height / 8) / rigth;
+      yspeed -= (height / 16) / rigth;
     }
-    if (left < 100) {
-      xspeed += 100/left;
+    if (left < height / 8) {
+      xspeed += (height / 8) / left;
     }
     if (xspeed > maxSpeed) {
       xspeed = maxSpeed;
@@ -378,7 +368,7 @@ class Pathfinder {
   void path() {
     if (count < cycles) {
       if (count < path.length) {
-        path[count] = new PVector(pathfinder.x, pathfinder.y);
+        path[count] = new PVector(wanderer.x, wanderer.y);
         count++;
       }
       if (count == cycles) {
@@ -428,7 +418,7 @@ void xml() { // Imports rss-feeds and count specific data.
       }
     }
   }
-  gainRSS = float(int((resourceCycle-resourceCycle/float(rss))*100))/100;
+  gainRSS = float(int((resourceCycle-resourceCycle/float(rss))*1000))/1000;
   countRSS = feedZS.title.length + feedLU.title.length;
 }
 
