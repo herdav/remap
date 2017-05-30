@@ -8,11 +8,12 @@ Waypoints[] waypoint;
 
 // Setup -----------------------------------
 
-int cycles = 8000;
-int maxCycles = 8000;
+int cycles = 4000;
+int maxCycles = 4000;
+int graphic = 0;
 boolean showMAP = true;
 boolean showXML = true;
-boolean video = false;
+boolean video = true;
 
 // -----------------------------------------
 
@@ -38,7 +39,7 @@ int[] countExplorations = new int[numberWaypoints];
 int mapWidth, mapPartWidth;
 int rasterMapBountX, rasterMapBountY, rasterMapBountXY;
 int rss, countRSS;
-int cycleResource, cycle, count;
+int cycleResource, cycle, count, n;
 int day = day();
 int month = month();
 int year = year();
@@ -54,6 +55,7 @@ PVector[] path = new PVector[cycles];
 
 boolean mouseClicked;
 boolean[] countExploration = new boolean[numberWaypoints];
+boolean cycleOdd;
 
 PFont cour;
 
@@ -71,7 +73,7 @@ void setup() {
   for (int i = 0; i < path.length; i++) {
     path[i] = new PVector(0, 0);
   }
-  mapOrg = loadImage("\\img\\map_2400x4000_bw_light.jpg");
+  mapOrg = loadImage("\\img\\map.jpg");
   mapOrg.resize(mapWidth, height);
   mapOrg.loadPixels();
   waypointCoordinate();
@@ -86,9 +88,12 @@ void setup() {
 
 void draw() {
   int millis = millis();
-  if (cycle > 100) {
+  if (cycle == graphic || cycleOdd == true) {
     showMAP = false;
     showXML = false;
+  } else {
+    showMAP = true;
+    showXML = true;
   }
   if (cycle <= maxCycles) {
     if (showMAP == true) {
@@ -98,8 +103,7 @@ void draw() {
       fill(colorBackground);
       rect(0, 0, width, height);
     }
-    cycleResource++;
-    cycle++;
+    cycle();
     xml();
     net();
     wanderer();
@@ -109,20 +113,23 @@ void draw() {
       waypoint[i].update();
       resource();
       waypointsGrowth();
-    }    
+    }       
+    if (video == true) {
+      if (cycleOdd == true) {
+        saveFrame("\\capture\\a\\video_####.jpg");
+      } else {
+        saveFrame("\\capture\\b\\video_####.jpg");
+      }
+    }
     millis = millis() - millis;
     println("explorations:", explorations + "/" + numberWaypoints, " rss:", gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, 
       " speed:", speedWanderer, " cycle:", cycle + "/" + maxCycles + "(" + cycles + ")", "-", millis + "ms");
-
-    if (video == true) {
-      saveFrame("\\capture\\video_####.jpg");
-    }
   }
 }
 
 void keyPressed () { // Saves screenshot under specific folder.
   if (key == 's') {
-    saveFrame("\\capture\\capture_####.jpg");   
+    saveFrame("\\capture\\capture_####.jpg");
   }
 }
 
@@ -134,6 +141,17 @@ void date() { // Shows date and time on screen.
   textAlign(LEFT);
   fill(255, 210);
   text(day + "." + month + "." + year + " " + hour + ":" + minute, width - systemSize * mapPartWidth + 30, height - 30);
+}
+
+void cycle() {
+  cycleResource++;
+  cycle++;
+  n = cycle / 2;
+  if (2 * n - cycle == 0) {
+    cycleOdd = false;
+  } else {
+    cycleOdd = true;
+  }
 }
 
 void raster() { // Determines the number of partial images.
