@@ -1,25 +1,26 @@
-// REMAP v.1 by David Herren - 2017
+// REMAP by David Herren - 2017
 // HSLU D&K - IDA Enzyklopaedie Emmenbruecke
-// -----------------------------------------
+// http://enzyklopaedie-emmenbruecke.ch
+// https://github.com/herdav/remap
+// Under MIT License.
+// -----------------------------------------------------
+
+int cycles = 4000;        // length path
+int maxCycles = 4000;     // max programmcycles
+int graphic = 0;          // cycle when hide MAP and XML
+boolean showMAP = false;  // show MAP on screen
+boolean showXML = false;  // show XML on screen
+boolean video = false;    // export captures
+
+// -----------------------------------------------------
 
 RSS feedZS, feedLU;
 wanderer wandererA;
 Waypoints[] waypoint;
 
-// Setup -----------------------------------
-
-int cycles = 4000;
-int maxCycles = 4000;
-int graphic = 0;
-boolean showMAP = true;
-boolean showXML = true;
-boolean video = true;
-
-// -----------------------------------------
-
 int numberWaypoints = 90;
 int radiusWaypoint = 10;
-int systemSize = 4;
+int rasterSize = 4;
 int textSize = 30;
 
 float maxResource = 100;
@@ -62,7 +63,7 @@ PFont cour;
 String[] search, text;
 
 void setup() {
-  size(3000, 1500, P2D); //1840, 920
+  size(1840, 920, P2D); // 3000, 1500 (Resolution for graphic).
   smooth(8);
   frameRate(25);
   background(colorBackground);
@@ -88,43 +89,22 @@ void setup() {
 
 void draw() {
   int millis = millis();
-  if (cycle == graphic || cycleOdd == true) {
-    showMAP = false;
-    showXML = false;
-  } else {
-    showMAP = true;
-    showXML = true;
-  }
-  if (cycle <= maxCycles) {
-    if (showMAP == true) {
-      image(mapImageBfull, 0, 0);
-    }
-    if (showMAP == false) {
-      fill(colorBackground);
-      rect(0, 0, width, height);
-    }
-    cycle();
-    xml();
-    net();
-    wanderer();
-    date();
-    for (int i = 0; i < waypoint.length; i++) {     
-      waypoint[i].display();
-      waypoint[i].update();
-      resource();
-      waypointsGrowth();
-    }       
-    if (video == true) {
-      if (cycleOdd == true) {
-        saveFrame("\\capture\\a\\video_####.jpg");
-      } else {
-        saveFrame("\\capture\\b\\video_####.jpg");
-      }
-    }
-    millis = millis() - millis;
-    println("explorations:", explorations + "/" + numberWaypoints, " rss:", gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, 
-      " speed:", speedWanderer, " cycle:", cycle + "/" + maxCycles + "(" + cycles + ")", "-", millis + "ms");
-  }
+  graphic();
+  cycle();
+  xml();
+  net();
+  wanderer();
+  date();
+  for (int i = 0; i < waypoint.length; i++) {     
+    waypoint[i].display();
+    waypoint[i].update();
+    resource();
+    waypointsGrowth();
+  }       
+  video();
+  millis = millis() - millis;
+  println("explorations:", explorations + "/" + numberWaypoints, " rss:", gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, 
+    " speed:", speedWanderer, " cycle:", cycle + "/" + maxCycles + "(" + cycles + ")", "-", millis + "ms");
 }
 
 void keyPressed () { // Saves screenshot under specific folder.
@@ -140,10 +120,10 @@ void date() { // Shows date and time on screen.
   textFont(cour);
   textAlign(LEFT);
   fill(255, 210);
-  text(day + "." + month + "." + year + " " + hour + ":" + minute, width - systemSize * mapPartWidth + 30, height - 30);
+  text(day + "." + month + "." + year + " " + hour + ":" + minute, width - rasterSize * mapPartWidth + 30, height - 30);
 }
 
-void cycle() {
+void cycle() { // Calculates odd cycles.
   cycleResource++;
   cycle++;
   n = cycle / 2;
@@ -154,8 +134,43 @@ void cycle() {
   }
 }
 
+void graphic() { // Logic for "video()".
+  if (video == true && cycle > graphic) {
+    if (cycle == graphic || cycleOdd == true) {
+      showMAP = false;
+      showXML = false;
+    } else {
+      showMAP = true;
+      showXML = true;
+    }
+  }
+  if (cycle > graphic) {
+    showMAP = false;
+    showXML = false;
+  }
+  if (cycle <= maxCycles) {
+    if (showMAP == true) {
+      image(mapImageBfull, 0, 0);
+    }
+    if (showMAP == false) {
+      fill(colorBackground);
+      rect(0, 0, width, height);
+    }
+  }
+}
+
+void video() {  // Save captures for video
+  if (video == true) {
+    if (cycleOdd == true) {
+      saveFrame("\\capture\\a\\video_####.jpg");
+    } else {
+      saveFrame("\\capture\\b\\video_####.jpg");
+    }
+  }
+}
+
 void raster() { // Determines the number of partial images.
-  rasterMapBountX = systemSize*5;
+  rasterMapBountX = rasterSize*5;
   rasterMapBountY = rasterMapBountX/5*3;
   rasterMapBountXY = rasterMapBountX*rasterMapBountY;
   gridMaster = new PVector[rasterMapBountXY];
