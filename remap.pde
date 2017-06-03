@@ -2,8 +2,8 @@
 // HSLU D&K - IDA Enzyklopaedie Emmenbruecke
 // http://enzyklopaedie-emmenbruecke.ch
 // https://github.com/herdav/remap
-// Under MIT License.
-// -----------------------------------------------------
+// Licensed under the MIT License
+// ------------------------------------------------------------------------------
 
 int cycles = 4000;        // length path
 int maxCycles = 4000;     // max programmcycles
@@ -12,7 +12,7 @@ boolean showMAP = false;  // show MAP on screen
 boolean showXML = false;  // show XML on screen
 boolean video = false;    // export captures
 
-// -----------------------------------------------------
+// ------------------------------------------------------------------------------
 
 RSS feedZS, feedLU;
 wanderer wandererA;
@@ -68,7 +68,7 @@ void setup() {
   frameRate(25);
   background(colorBackground);
   cour = createFont("\\data\\courbd.ttf", textSize);
-  mapWidth = height / 3 * 5;
+  mapWidth = height / 3*5;
   wandererA = new wanderer();
   waypoint = new Waypoints[numberWaypoints];
   for (int i = 0; i < path.length; i++) {
@@ -103,8 +103,10 @@ void draw() {
   }       
   video();
   millis = millis() - millis;
-  println("explorations:", explorations + "/" + numberWaypoints, " rss:", gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, 
-    " speed:", speedWanderer, " cycle:", cycle + "/" + maxCycles + "(" + cycles + ")", "-", millis + "ms");
+  println("explorations:", explorations + "/" + numberWaypoints, " rss:", 
+    gainRSS + "/" + resourceCycle, "-", rss + "/" + countRSS, " speed:", 
+    speedWanderer, " cycle:", cycle + "/" + maxCycles + "(" + cycles + ")", 
+    "-", millis + "ms");
 }
 
 void keyPressed () { // Saves screenshot under specific folder.
@@ -120,14 +122,15 @@ void date() { // Shows date and time on screen.
   textFont(cour);
   textAlign(LEFT);
   fill(255, 210);
-  text(day + "." + month + "." + year + " " + hour + ":" + minute, width - rasterSize * mapPartWidth + 30, height - 30);
+  text(day + "." + month + "." + year + " " + hour + ":" + minute, 
+    width - rasterSize*mapPartWidth + 30, height - 30);
 }
 
 void cycle() { // Calculates odd cycles.
   cycleResource++;
   cycle++;
-  n = cycle / 2;
-  if (2 * n - cycle == 0) {
+  n = cycle/2;
+  if (2*n - cycle == 0) {
     cycleOdd = false;
   } else {
     cycleOdd = true;
@@ -159,7 +162,7 @@ void graphic() { // Logic for "video()".
   }
 }
 
-void video() {  // Save captures for video
+void video() {  // Save captures for video.
   if (video == true) {
     if (cycleOdd == true) {
       saveFrame("\\capture\\a\\video_####.jpg");
@@ -187,7 +190,7 @@ void gridMaster() { // Generated vectors according "raster()".
   }
 }
 
-void createMapImage() { // Converts "mapOrg" into whole pixel image "mapImage..".
+void createMapImage() { // Converts "mapOrg" into whole image "mapImage..".
   mapImageA = new PImage[rasterMapBountXY];
   mapImageB = new PImage[rasterMapBountXY];
   for (int i = 0; i < rasterMapBountXY; i++) {
@@ -203,7 +206,9 @@ void mapA() { // Disassembled PImage "mapOrg" in subpictures "mapImageB[]".
     for (int k = 0; k < rasterMapBountX; k++) {
       for (int j = 0; j < mapPartWidth; j++) {
         for (int i = 0; i < mapPartWidth; i++) {                                    
-          mapImageB[k+l*rasterMapBountX].pixels[i+j*mapPartWidth] = mapOrg.pixels[j*mapWidth+i+mapWidth*l*mapPartWidth+k*mapPartWidth];
+          mapImageB[k + l*rasterMapBountX].pixels[ i + j*mapPartWidth]
+            = mapOrg.pixels[j*mapWidth + i + mapWidth*l*mapPartWidth +
+            k*mapPartWidth];
         }
       }
     }
@@ -239,13 +244,15 @@ void waypointCoordinate() { // Generates the coordinates for "waypoint[]".
   waypointCoordinate = new PVector[waypoint.length];
   int rand = height / 6;
   for (int i = 0; i < waypoint.length; i++) {
-    waypointCoordinate[i] = new PVector(random(rand, width-2*rand), random(rand, height-rand));
+    waypointCoordinate[i] = new PVector(random(rand, width - 2*rand),
+    random(rand, height - rand));
   }
 }
 
 void waypoints() { // Generates the "waypoint[]".
   for (int i = 0; i < waypoint.length; i++) {
-    waypoint[i] = new Waypoints(waypointCoordinate[i].x, waypointCoordinate[i].y, radiusWaypoint, gainRSS);
+    waypoint[i] = new Waypoints(waypointCoordinate[i].x,
+    waypointCoordinate[i].y, radiusWaypoint, gainRSS);
   }
 }
 
@@ -269,7 +276,8 @@ void waypointsGrowth() { // Calculates the growth of each "waypoint[]".
 void net() { // Draws a net between "waypoint[]" and "wanderer()".
   for (int j = 0; j < path.length; j++) {
     for (int i = 0; i < waypoint.length; i++) {
-      if (dist(path[j].x, path[j].y, waypoint[i].xpos, waypoint[i].ypos) < height / 8) {
+      if (dist(path[j].x, path[j].y, waypoint[i].xpos,
+      waypoint[i].ypos) < height / 8) {
         strokeWeight(1);
         stroke(colorStroke);
         line(path[j].x, path[j].y, waypoint[i].xpos, waypoint[i].ypos);
@@ -278,7 +286,8 @@ void net() { // Draws a net between "waypoint[]" and "wanderer()".
   }
 }
 
-void resource() { // Calculates the "consumption" of the "waypoint[]" according to the hits in relation to each other.
+void resource() { // Calculates the "consumption" of the "waypoint[]"
+                  // according to the hits in relation to each other.
   if (cycleResource == 1) {
     maxResource += resourceCycle;
     cycleResource = 0;
@@ -323,12 +332,14 @@ class Waypoints {
   }
 }
 
-void wanderer() { // Is looking for "waypoints[]" on the map and draw a "path[]".
+void wanderer() { // Looking for "waypoints[]" on the map and draw a "path[]".
+
   wandererA.move();
   wandererA.force();
   wandererA.path();
 
-  speedWanderer = float(int(sqrt(sq(wandererA.xspeed) + sq(wandererA.yspeed))*10))/10;
+  speedWanderer = float(int(sqrt(sq(wandererA.xspeed) +
+    sq(wandererA.yspeed))*10))/10;
 }
 
 class wanderer {
@@ -364,7 +375,8 @@ class wanderer {
   }
   void force() {
     for (int i = 0; i < waypoint.length; i++) {
-      deltaPos[i] = dist(waypointCoordinate[i].x, waypointCoordinate[i].y, wanderer.x, wanderer.y);
+      deltaPos[i] = dist(waypointCoordinate[i].x, 
+        waypointCoordinate[i].y, wanderer.x, wanderer.y);
       float attraction = 1/deltaPos[i];
       if (deltaPos[i] < distance) {
         xspeed += attraction;
