@@ -10,4 +10,4 @@ With each new program start, a unique map is created – a map with a uniform st
 
 ![capture](https://github.com/herdav/remap/blob/master/exhibition.jpg)
 
-Show [Video](https://vimeo.com/219492932) @Vimeo.
+Show [Video](https://vimeo.com/219492932) @ Vimeo.
