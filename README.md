@@ -8,8 +8,14 @@ A virtual wanderer looking on the map for fictitious way points, shown as circul
 
 With each new program start, a unique map is created – a map with a uniform structure or with areas of increased concentration.
 
-![capture](https://github.com/herdav/remap/blob/master/remap.jpg)
+- [@Vimeo](https://vimeo.com/219492932)
+- [@Hochparterre](https://www.hochparterre.ch/campus/blog/post/detail/r-wie-remap/1512658363/)
+- [@Network-of-Arts](https://networkofarts.com/public/artwork/286/777)
+
+### Exhibition view
 
 ![capture](https://github.com/herdav/remap/blob/master/exhibition.jpg)
 
-Show [Video](https://vimeo.com/219492932) @ Vimeo.
+### Graphic
+
+![capture](https://github.com/herdav/remap/blob/master/remap.jpg)
