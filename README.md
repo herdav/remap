@@ -1,6 +1,6 @@
 # remap
 
-Input for the "[Enzyklopädie_Emmenbrücke](http://enzyklopaedie-emmenbruecke.ch/)" IDA-Project at Lucerne University of Applied Sciences and Arts - Design & Art.
+Input for the "[Enzyklopädie_Emmenbrücke](https://enzyklopaedie-emmenbruecke.xyz/r/)" IDA-Project at Lucerne University of Applied Sciences and Arts - Design & Art.
 
 The work «remap» deals with the processing of data and the aesthetics of statistical graphics. A satellite image of Emmen and the news feeds of central Switzerland of Swiss radio and television (SRF) and the Lucerne newspaper serve as raw data. A custom software converts this data into an animation graphic. The work «remap» doesn’t transport real facts, but produces the appearance of authenticity. Expectations, which are posed on the interpretation of data, could so be disturbed.
 
